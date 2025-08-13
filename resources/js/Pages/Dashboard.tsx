@@ -3,114 +3,30 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router, usePage } from "@inertiajs/react";
 import { useMemo, useRef, useState } from "react";
 import { createUpload } from "@mux/upchunk";
+import { useFileUploader } from "@/hooks/useFileUploader";
 
 type Props = {
     files: Array<{ id: number; file_path: string }>;
 };
 
-const initialState = {
-    file: null as File | null,
-    uploader: null as ReturnType<typeof createUpload> | null,
-    progress: 0,
-    uploading: false,
-    error: null as string | null,
-};
-
 export default function Dashboard({ files }: Props) {
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const { csrf_token } = usePage().props as unknown as { csrf_token: string };
 
-    const [_file, setFile] = useState<File | null>(initialState.file);
-    const [uploader, setUploader] = useState<ReturnType<
-        typeof createUpload
-    > | null>(initialState.uploader);
-    const [uploadProgress, setUploadProgress] = useState<number>(
-        initialState.progress
-    );
-    const [uploading, setUploading] = useState<boolean>(initialState.uploading);
-    const [isPaused, setIsPaused] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(initialState.error);
-
-    const formattedProgress = useMemo(
-        () => Math.round(uploadProgress),
-        [uploadProgress]
-    );
-
-    const reset = () => {
-        setFile(initialState.file);
-        setUploader(initialState.uploader);
-        setUploadProgress(initialState.progress);
-        setUploading(initialState.uploading);
-        setIsPaused(false);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const cancel = () => {
-        if (!uploader) return;
-
-        uploader.abort();
-        reset();
-    };
-
-    const pause = () => {
-        if (!uploader) return;
-
-        uploader.pause();
-        setIsPaused(true);
-    };
-
-    const resume = () => {
-        if (!uploader) return;
-
-        uploader.resume();
-        setIsPaused(false);
-    };
-
-    const submit = (event: React.FormEvent) => {
-        event.preventDefault();
-        if (!fileInputRef.current || !fileInputRef.current.files) return;
-
-        const selectedFile = fileInputRef.current.files[0];
-        setFile(selectedFile);
-
-        // Start uploading
-        const uploader = createUpload({
-            endpoint: route("file.store"),
-            headers: {
-                "X-CSRF-TOKEN": csrf_token,
-            },
-            method: "POST",
-            file: selectedFile,
-            chunkSize: 1024 * 5, // 5MB
-        });
-        setUploader(uploader);
-
-        uploader.on("attempt", () => {
-            // Reset progress and error state
-            setError(null);
-            // Show upload progress
-            setUploading(true);
-        });
-
-        uploader.on("progress", (event) => {
-            // Update progress state
-            setUploadProgress(event.detail);
-        });
-
-        uploader.on("success", () => {
-            // Update progress state
-            router.reload({
-                only: ["files"],
-            });
-            reset();
-        });
-
-        uploader.on("error", (error) => {
-            setError(error.detail.message);
-        });
-    };
+    const {
+        fileInputRef,
+        uploadProgress,
+        uploading,
+        isPaused,
+        error,
+        formattedProgress,
+        submit,
+        pause,
+        resume,
+        cancel,
+    } = useFileUploader({
+        csrfToken: csrf_token,
+        onSuccess: () => router.reload({ only: ["files"] }),
+    });
 
     return (
         <AuthenticatedLayout
