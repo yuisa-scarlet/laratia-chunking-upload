@@ -15,7 +15,7 @@ class FileController extends Controller
     public function store(Request $request)
     {
         // If you want to simulate an error, you can uncomment the line below
-        throw new Exception();
+        // throw new Exception();
         
         $receiver = new FileReceiver(
             UploadedFile::fake()->createWithContent('file', $request->getContent()),
