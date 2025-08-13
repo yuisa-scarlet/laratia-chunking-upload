@@ -89,7 +89,6 @@ export function useFileUploader({ csrfToken, onSuccess }: FileUploaderProps) {
 
         uploaderInstance.on("error", (error) => {
             setError(error.detail.message);
-            setUploading(false);
         });
     };
 
